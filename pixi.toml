@@ -1,0 +1,24 @@
+[workspace]
+name = "maa-runner"
+version = "0.1.0"
+description = "Take over maa run daily: device, proxy, timeout, Summary, Telegram, cleanup"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64"]
+
+[dependencies]
+python = ">=3.11,<3.13"
+requests = "*"
+pillow = "*"
+pytest = "*"
+
+[activation.env]
+PYTHONPATH = "src"
+
+[tasks]
+init = "python -m maa_runner init"
+doctor = "python -m maa_runner doctor"
+install = "python -m maa_runner install"
+uninstall = "python -m maa_runner uninstall"
+daily = "python -m maa_runner daily"
+notify-test = "python -m maa_runner notify-test"
+test = "python -m maa_runner test"

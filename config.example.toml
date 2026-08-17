@@ -1,0 +1,40 @@
+# Optional [device] wake/sleep overrides. Defaults are used when omitted.
+# adb / serial are NOT set here — they are read at runtime from
+# $(maa dir config)/profiles/<profile>.json (connection.adb_path +
+# connection.device|address).
+#
+# [device]
+# wake_key = 224              # KEYCODE_WAKEUP
+# sleep_key = 223             # KEYCODE_SLEEP
+# wake_retries = 5
+# luma_black = 10.0           # mean luma below this => black screen
+# wake_interval_sec = 1.5
+
+[network]
+proxy = "http://127.0.0.1:7890"
+probe_timeout_sec = 10
+probe_urls = [
+  "https://github.com",
+  "https://api.maa.plus",
+  "https://api.telegram.org",
+]
+
+[maa]
+bin = "/Users/nan/.cargo/bin/maa"
+task = "daily"
+profile = "default"
+extra_args = ["-vv", "--batch", "--log-file"]
+timeout_sec = 3600
+log_dir = "logs"
+
+[telegram]
+enabled = true
+bot_token = ""
+chat_id = ""
+
+[cleanup]
+mode = "reboot"             # reboot | sleep_only
+boot_timeout_sec = 180
+
+[schedule]
+cron = "0 5 * * *"
