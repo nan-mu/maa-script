@@ -296,4 +296,4 @@ pixi run test
 
 ## 📄 许可
 
-尚未指定 License；发布前请自行添加。
+[MIT](LICENSE)
