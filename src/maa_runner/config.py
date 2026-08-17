@@ -64,6 +64,12 @@ class ScheduleConfig:
 
 
 @dataclass(frozen=True)
+class LogsConfig:
+    compression_level: int = 9
+    retain_months: int = 3
+
+
+@dataclass(frozen=True)
 class Config:
     root: Path
     device: DeviceConfig
@@ -72,6 +78,7 @@ class Config:
     telegram: TelegramConfig
     cleanup: CleanupConfig
     schedule: ScheduleConfig
+    logs: LogsConfig = LogsConfig()
 
     def log_dir(self) -> Path:
         path = Path(self.maa.log_dir)
@@ -137,6 +144,20 @@ def _optional_number(section: dict, key: str, default: float) -> float:
     if key not in section:
         return default
     return _require_number(section, key)
+
+
+def _parse_logs(logs_raw: object | None) -> LogsConfig:
+    if logs_raw is None:
+        return LogsConfig()
+    if not isinstance(logs_raw, dict):
+        raise ConfigError("[logs] must be a table")
+    level = _optional_int(logs_raw, "compression_level", 9)
+    if level < 0 or level > 9:
+        raise ConfigError("logs.compression_level must be 0-9")
+    months = _optional_int(logs_raw, "retain_months", 3)
+    if months < 1:
+        raise ConfigError("logs.retain_months must be >= 1")
+    return LogsConfig(compression_level=level, retain_months=months)
 
 
 def _parse_device(device_raw: dict | None) -> DeviceConfig:
@@ -220,6 +241,8 @@ def load_config(root: Path | None = None, *, require_telegram: bool = True) -> C
     if not isinstance(profile, str) or not profile.strip():
         raise ConfigError("maa.profile must be a non-empty string")
 
+    logs = _parse_logs(raw.get("logs"))
+
     return Config(
         root=root,
         device=_parse_device(device_raw),
@@ -244,6 +267,7 @@ def load_config(root: Path | None = None, *, require_telegram: bool = True) -> C
         schedule=ScheduleConfig(
             cron=_require_str(schedule_raw, "cron"),
         ),
+        logs=logs,
     )
 
 

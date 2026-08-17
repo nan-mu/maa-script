@@ -5,6 +5,7 @@ from datetime import datetime
 from maa_runner import adb, net, notify
 from maa_runner.adb import AdbError
 from maa_runner.config import Config, ConfigError
+from maa_runner.logs import daily_log_path, harvest_cron, prepare_logs
 from maa_runner.maa import (
     MaaDirError,
     MaaResult,
@@ -14,6 +15,9 @@ from maa_runner.maa import (
     maa_dir,
     run_maa,
 )
+from maa_runner.notify import NotifyError
+from maa_runner.parse import parse_summary
+from maa_runner.report import build_report, scan_log_file
 
 EXIT_OK = 0
 EXIT_CONFIG = 1
@@ -21,9 +25,6 @@ EXIT_STAGE = 2
 EXIT_TIMEOUT = 3
 EXIT_TELEGRAM = 4
 EXIT_INTERRUPT = 130
-from maa_runner.notify import NotifyError
-from maa_runner.parse import parse_summary
-from maa_runner.report import build_report, scan_log_file
 
 
 class StageError(Exception):
@@ -69,6 +70,15 @@ def run_preflight(cfg: Config) -> list[str]:
     except (MaaDirError, ConfigError) as exc:
         detail(f"FAIL ({exc})")
         failures.append(f"MAA config: {exc}")
+
+    print("[doctor] 7z", flush=True)
+    try:
+        from maa_runner.logs import ArchiveError, resolve_7z
+
+        detail(f"ok ({resolve_7z()})")
+    except ArchiveError as exc:
+        detail(f"FAIL ({exc})")
+        failures.append(f"7z: {exc}")
 
     print("[doctor] Telegram", flush=True)
     try:
@@ -123,8 +133,8 @@ def _phase2(cfg: Config) -> None:
 
 def _phase3(cfg: Config, timestamp: str) -> MaaResult:
     title(3, "MAA 调度")
-    log_path = cfg.log_dir() / f"{timestamp}.log"
-    detail(" ".join(build_cmd(cfg, log_path)))
+    daily = daily_log_path(cfg.log_dir(), datetime.now().date())
+    detail(" ".join(build_cmd(cfg, daily)))
 
     def on_tick(elapsed: int) -> None:
         detail(f"运行中 ({elapsed}s)")
@@ -220,7 +230,17 @@ def _interrupted(cfg: Config) -> int:
 def run_daily(cfg: Config) -> int:
     cfg = prepare_config(cfg)
     cfg.log_dir().mkdir(parents=True, exist_ok=True)
+    today = datetime.now().date()
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    prepare_logs(cfg.log_dir(), cfg.logs, today, log=detail)
+
+    try:
+        return _run_daily_body(cfg, timestamp)
+    finally:
+        harvest_cron(cfg.log_dir(), daily_log_path(cfg.log_dir(), today))
+
+
+def _run_daily_body(cfg: Config, timestamp: str) -> int:
 
     try:
         try:

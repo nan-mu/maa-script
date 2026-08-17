@@ -38,3 +38,7 @@ boot_timeout_sec = 180
 
 [schedule]
 cron = "0 5,17 * * *"
+
+[logs]
+compression_level = 9   # 0-9, 7z -mx; 9 = smallest
+retain_months = 3       # ISO weeks kept inside logs/archive.7z

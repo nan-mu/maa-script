@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from maa_runner.config import Config, ConfigError, with_device
+from maa_runner.logs import append_section, daily_log_path
 from maa_runner.net import proxy_env
 
 TASK_EXTENSIONS = (".toml", ".json", ".yml", ".yaml")
@@ -195,10 +196,10 @@ def run_maa(
     timestamp: str,
     on_tick=None,
 ) -> MaaResult:
+    del timestamp
     log_dir = cfg.log_dir()
     log_dir.mkdir(parents=True, exist_ok=True)
-    log_path = log_dir / f"{timestamp}.log"
-    summary_path = log_dir / f"{timestamp}.summary.txt"
+    log_path = daily_log_path(log_dir, datetime.now().date())
     cmd = build_cmd(cfg, log_path)
     env = os.environ.copy()
     env.update(proxy_env(cfg.network.proxy))
@@ -246,7 +247,8 @@ def run_maa(
     ended_at = datetime.now()
     stdout = (stdout_b or b"").decode("utf-8", "replace")
     stderr = (stderr_b or b"").decode("utf-8", "replace")
-    summary_path.write_text(stdout, encoding="utf-8")
+    daily_path = daily_log_path(log_dir, started_at.date())
+    append_section(daily_path, "MAA", stdout, when=started_at)
 
     maa_log_path = None
     try:
@@ -259,8 +261,8 @@ def run_maa(
         stderr=stderr,
         returncode=proc.returncode,
         timed_out=timed_out,
-        summary_path=summary_path,
-        log_path=log_path,
+        summary_path=daily_path,
+        log_path=daily_path,
         cmd=cmd,
         started_at=started_at,
         ended_at=ended_at,

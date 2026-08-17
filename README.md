@@ -10,23 +10,27 @@ maa-script 接管 MAA daily 的执行流程：**优化终端日志**、**解析 
 
 ## 💡 这个项目解决什么
 
-| 之前 😵 | 之后 ✨ |
-|---------|---------|
-| maa 跑完，不知道完成了什么，要手动翻日志 | Telegram 一条消息：剿灭、理智、公招、基建一目了然 |
-| 不知道 daily 跑没跑完、哪步挂了 | ✅ / ❌ / ⚠️ 状态 + 失败任务列表，必要时附 summary / log |
-| crontab、错误处理、超时各自散落 | 一个 `config.toml` 集中配置 |
-| 跑完手机还亮着 | 自动息屏或 reboot |
+
+| 之前 😵                  | 之后 ✨                                      |
+| ---------------------- | ----------------------------------------- |
+| maa 跑完，不知道完成了什么，要手动翻日志 | Telegram 一条消息：剿灭、理智、公招、基建一目了然             |
+| 不知道 daily 跑没跑完、哪步挂了    | ✅ / ❌ / ⚠️ 状态 + 失败任务列表，必要时附 summary / log |
+| crontab、错误处理、超时各自散落    | 一个 `config.toml` 集中配置                     |
+| 跑完手机还亮着                | 自动息屏或 reboot                              |
+
 
 **主旨**：配置简单，回报清晰。
 
 ---
 
+
+
 ## 🏗 典型部署
 
 ```text
   Mac mini                         Android 真机
- ┌─────────────┐    adb / 代理     ┌─────────────┐
- │ maa-cli     │ ───────────────► │ 明日方舟      │
+ ┌─────────────┐       adb        ┌─────────────┐
+ │ maa-cli     │ ───────────────► │ 明日方舟     │
  │ maa-script  │                  │             │
  │ cron        │                  └─────────────┘
  └──────┬──────┘
@@ -39,11 +43,13 @@ MAA 的 adb 路径、设备序列号写在 MAA profile 里；maa-script 的 `con
 
 ---
 
+
+
 ## ✨ 功能
 
 - 📲 **真机设备** — 从 MAA profile 读 adb / 序列号；唤醒、亮度检测、息屏 / reboot
 - 🌐 **网络** — 代理探测 MAA / Telegram 等 URL，失败提前告警
-- 🤖 **MAA 调度** — `maa run daily`，超时 kill，stdout 落盘 `logs/<timestamp>.summary.txt`
+- 🤖 **MAA 调度** — `maa run daily`，超时 kill，stdout 追加到当天 `logs/YYYY-MM-DD.log`
 - 📊 **Summary 解析** — 原始 Summary → 精简报告
   - ⚔ 剿灭 / 理智作战：关卡、次数、总掉落（`理智 × 1` 不展示）
   - 🎟 公招：招募 / 刷新、星级统计
@@ -54,18 +60,25 @@ MAA 的 adb 路径、设备序列号写在 MAA profile 里；maa-script 的 `con
 
 ---
 
+
+
 ## 📋 环境要求
 
-| 依赖 | 说明 |
-|------|------|
-| 🍎 macOS | Pixi 当前平台：`osx-arm64` / `osx-64` |
-| 📦 [Pixi](https://pixi.sh) | 依赖与任务管理 |
-| 🎮 [MAA](https://github.com/MaaAssistantArknights/MaaAssistantArknights) | 已安装 `maa`，且在 `[maa].bin` 或 PATH 中 |
-| 🔌 adb | 由 MAA profile 的 `connection.adb_path` 指定 |
-| 📱 Android 设备 | MAA profile 已配好连接 |
-| 💬 Telegram Bot | **必需**（`doctor` / `daily` 会校验） |
+
+| 依赖                                                                       | 说明                                       |
+| ------------------------------------------------------------------------ | ---------------------------------------- |
+| 🍎 macOS                                                                 | Pixi 当前平台：`osx-arm64` / `osx-64`         |
+| 📦 [Pixi](https://pixi.sh)                                               | 依赖与任务管理                                  |
+| 🗜 7-Zip / p7zip                                                         | `7z` 在 PATH 中（ISO 周归档）                   |
+| 🎮 [MAA](https://github.com/MaaAssistantArknights/MaaAssistantArknights) | 已安装 `maa`，且在 `[maa].bin` 或 PATH 中        |
+| 🔌 adb                                                                   | 由 MAA profile 的 `connection.adb_path` 指定 |
+| 📱 Android 设备                                                            | MAA profile 已配好连接                        |
+| 💬 Telegram Bot                                                          | **必需**（`doctor` / `daily` 会校验）           |
+
 
 ---
+
+
 
 ## 🚀 快速开始
 
@@ -84,6 +97,8 @@ pixi run daily         # 手动跑一轮
 pixi run install       # 写入 crontab（需 doctor 通过）
 pixi run uninstall     # 移除 crontab 行
 ```
+
+
 
 ### 最小配置示例
 
@@ -112,110 +127,153 @@ boot_timeout_sec = 180
 
 [schedule]
 cron = "0 5,17 * * *"
+
+[logs]
+compression_level = 9   # 0-9，9 = 最大压缩
+retain_months = 3
 ```
 
 > ⚠️ `config.toml` 已在 `.gitignore` 中，**勿提交** Bot Token。完整字段见 `config.example.toml`。
 
 ---
 
+
+
 ## ⚙️ 配置说明
+
+
 
 ### 🌐 `[network]`
 
-| 键 | 说明 |
-|----|------|
-| `proxy` | HTTP 代理；留空则直连 |
-| `probe_timeout_sec` | 探测超时 |
-| `probe_urls` | 预检 URL 列表 |
+
+| 键                   | 说明            |
+| ------------------- | ------------- |
+| `proxy`             | HTTP 代理；留空则直连 |
+| `probe_timeout_sec` | 探测超时          |
+| `probe_urls`        | 预检 URL 列表     |
+
 
 MAA 子进程与 Telegram 请求均走此代理。
 
 ### 🤖 `[maa]`
 
-| 键 | 说明 |
-|----|------|
-| `bin` | `maa` 可执行文件路径 |
-| `task` | 任务名，默认 `daily` |
-| `profile` | MAA profile，默认 `default` |
-| `extra_args` | 建议 `-vv`、`--batch`、`--log-file` |
-| `timeout_sec` | 超时秒数，到期 SIGTERM 杀进程组 |
-| `log_dir` | runner 日志目录（相对项目根） |
+
+| 键             | 说明                              |
+| ------------- | ------------------------------- |
+| `bin`         | `maa` 可执行文件路径                   |
+| `task`        | 任务名，默认 `daily`                  |
+| `profile`     | MAA profile，默认 `default`        |
+| `extra_args`  | 建议 `-vv`、`--batch`、`--log-file` |
+| `timeout_sec` | 超时秒数，到期 SIGTERM 杀进程组            |
+| `log_dir`     | runner 日志目录（相对项目根）              |
+
 
 adb / 设备序列号**不在** `config.toml`，运行时从 `$(maa dir config)/profiles/<profile>.json` 的 `connection` 读取。
 
 ### 💬 `[telegram]`
 
-| 键 | 说明 |
-|----|------|
-| `enabled` | 须为 `true` |
+
+| 键           | 说明        |
+| ----------- | --------- |
+| `enabled`   | 须为 `true` |
 | `bot_token` | Bot Token |
-| `chat_id` | Chat ID |
+| `chat_id`   | Chat ID   |
+
+
+
 
 ### 😴 `[cleanup]`
 
-| 键 | 说明 |
-|----|------|
-| `mode` | `reboot`（默认）或 `sleep_only` |
+
+| 键                  | 说明                                  |
+| ------------------ | ----------------------------------- |
+| `mode`             | `reboot`（默认）或 `sleep_only`          |
 | `boot_timeout_sec` | reboot 后等待 `sys.boot_completed` 的超时 |
+
 
 Phase 1 / 2 失败时强制 `sleep_only`（不 reboot），避免设备离线时误重启。
 
 ### ⏰ `[schedule]`
 
-| 键 | 说明 |
-|----|------|
+
+| 键      | 说明                           |
+| ------ | ---------------------------- |
 | `cron` | crontab 表达式，如 `0 5,17 * * *` |
 
-`install` 写入的行会 `cd` 到项目目录、追加输出到 `logs/cron.log`。
+
+`install` 写入的行会 `cd` 到项目目录、追加输出到 `logs/cron.log`。跑完后 runner 会把当天内容剪进 `YYYY-MM-DD.log` 并清空 `cron.log`。
+
+### 🗂 `[logs]`（可选，有默认值）
+
+
+| 键                   | 默认  | 说明              |
+| ------------------- | --- | --------------- |
+| `compression_level` | 9   | 7z 压缩等级 0–9     |
+| `retain_months`     | 3   | 归档包内 ISO 周保留几个月 |
+
+
+热日志按天：`logs/YYYY-MM-DD.log`。发现**非本 ISO 周**的 `.log` 时打进 `logs/archive.7z`，目录名为 `yyyy-mm-week-WW`。旧的 `*.summary.txt` 会删除。
 
 ### 📲 `[device]`（可选）
 
 真机亮灭屏参数，省略则用默认值：
 
-| 键 | 默认 | 说明 |
-|----|------|------|
-| `wake_key` | 224 | KEYCODE_WAKEUP |
-| `sleep_key` | 223 | KEYCODE_SLEEP |
-| `wake_retries` | 5 | 唤醒重试次数 |
-| `luma_black` | 10.0 | 低于此平均亮度视为黑屏 |
-| `wake_interval_sec` | 1.5 | 唤醒间隔 |
+
+| 键                   | 默认   | 说明             |
+| ------------------- | ---- | -------------- |
+| `wake_key`          | 224  | KEYCODE_WAKEUP |
+| `sleep_key`         | 223  | KEYCODE_SLEEP  |
+| `wake_retries`      | 5    | 唤醒重试次数         |
+| `luma_black`        | 10.0 | 低于此平均亮度视为黑屏    |
+| `wake_interval_sec` | 1.5  | 唤醒间隔           |
+
 
 ---
 
+
+
 ## 🛠 命令
 
-| 命令 | 作用 |
-|------|------|
-| `pixi run init` | 生成 `config.toml` |
-| `pixi run doctor` | 预检 MAA / Telegram / 代理 / 设备 |
-| `pixi run daily` | 执行完整五阶段流程 |
-| `pixi run install` | 写入 crontab |
-| `pixi run uninstall` | 移除 crontab 行 |
-| `pixi run notify-test` | 发送测试消息 |
-| `pixi run test` | 运行 pytest |
+
+| 命令                     | 作用                          |
+| ---------------------- | --------------------------- |
+| `pixi run init`        | 生成 `config.toml`            |
+| `pixi run doctor`      | 预检 MAA / Telegram / 代理 / 设备 |
+| `pixi run daily`       | 执行完整五阶段流程                   |
+| `pixi run install`     | 写入 crontab                  |
+| `pixi run uninstall`   | 移除 crontab 行                |
+| `pixi run notify-test` | 发送测试消息                      |
+| `pixi run test`        | 运行 pytest                   |
+
 
 无 CLI 参数，一切通过 `config.toml` 配置。
 
 ---
+
+
 
 ## 🔄 执行流程
 
 ```text
 [1/5] 📲 设备校验   adb 在线 → 唤醒 → 亮度检测
 [2/5] 🌐 网络       代理探测 probe_urls
-[3/5] 🤖 MAA 调度   maa run daily → logs/<timestamp>.summary.txt
+[3/5] 🤖 MAA 调度   maa run daily → logs/YYYY-MM-DD.log
 [4/5] 📊 解析与回传  Summary → Telegram
 [5/5] 😴 后置清理   reboot + 息屏，或 sleep_only
 ```
 
-| 情况 | 行为 |
-|------|------|
-| Phase 1/2 失败 | 📬 Telegram 告警 → 息屏 → 退出码 2 |
-| Phase 3 超时 / 崩溃 | 仍解析已有 Summary 并发送 |
-| Phase 5 失败 | 📬 Telegram 告警 |
-| Ctrl+C | 告警 + 尽力息屏 → 退出码 130 |
+
+| 情况              | 行为                          |
+| --------------- | --------------------------- |
+| Phase 1/2 失败    | 📬 Telegram 告警 → 息屏 → 退出码 2 |
+| Phase 3 超时 / 崩溃 | 仍解析已有 Summary 并发送           |
+| Phase 5 失败      | 📬 Telegram 告警              |
+| Ctrl+C          | 告警 + 尽力息屏 → 退出码 130         |
+
 
 ---
+
+
 
 ## 📬 信息回报示例
 
@@ -236,32 +294,43 @@ Phase 1 / 2 失败时强制 `sleep_only`（不 reboot），避免设备离线时
 - 任一条任务非 `Completed` → ❌ 失败报告 + 附 summary 文件
 - maa 日志含 WARN / ERROR → ⚠️ 完成但告警 + 附 maa 日志
 
-终端 Phase 日志保持分阶段输出（`[1/5]` …），便于 cron 排错时看 `logs/cron.log`。
+终端 Phase 日志保持分阶段输出（`[1/5]` …）。crontab 先写入 `logs/cron.log`，本次跑完后剪进当天 `.log`。
 
 ---
+
+
 
 ## 📝 日志文件
 
-| 路径 | 内容 |
-|------|------|
-| `logs/<timestamp>.summary.txt` | MAA stdout（含 Summary 原文） |
-| `logs/cron.log` | crontab 触发的终端输出 |
-| MAA 自身 log | `--log-file` 写入 MAA 日志目录，runner 按时间戳匹配并附送 |
+
+| 路径                    | 内容                                        |
+| --------------------- | ----------------------------------------- |
+| `logs/YYYY-MM-DD.log` | 当天 MAA stdout + runner 输出（同一天追加）          |
+| `logs/archive.7z`     | 非本 ISO 周的热日志，按 `yyyy-mm-week-WW/` 存放      |
+| `logs/cron.log`       | crontab 缓冲；每次 daily 结束会清空                 |
+| MAA 自身 log            | `--log-file` 写入 MAA 日志目录，runner 按时间戳匹配并附送 |
+
 
 ---
+
+
 
 ## 🚦 退出码
 
-| 码 | 含义 |
-|----|------|
-| 0 | ✅ 成功 |
-| 1 | ⚙️ 配置 / doctor 失败 |
-| 2 | 💥 阶段失败（设备、网络、任务未全 Completed、清理失败等） |
-| 3 | ⏱ MAA 超时 |
-| 4 | 📬 流程 OK 但 Telegram 发送失败 |
-| 130 | 🛑 Ctrl+C 中断 |
+
+| 码   | 含义                                  |
+| --- | ----------------------------------- |
+| 0   | ✅ 成功                                |
+| 1   | ⚙️ 配置 / doctor 失败                   |
+| 2   | 💥 阶段失败（设备、网络、任务未全 Completed、清理失败等） |
+| 3   | ⏱ MAA 超时                            |
+| 4   | 📬 流程 OK 但 Telegram 发送失败            |
+| 130 | 🛑 Ctrl+C 中断                        |
+
 
 ---
+
+
 
 ## 📁 项目结构
 
@@ -275,6 +344,7 @@ maa-script/
     parse.py        # Summary 解析
     report.py       # Telegram 报告
     maa.py          # MAA 调度 + profile / 日志路径
+    logs.py         # 按日追加、ISO 周归档 7z
     adb.py          # 真机 adb + 亮灭屏
     config.py       # 配置加载
     notify.py       # Telegram
@@ -286,6 +356,8 @@ maa-script/
 
 ---
 
+
+
 ## 🧪 开发
 
 ```bash
@@ -293,6 +365,8 @@ pixi run test
 ```
 
 ---
+
+
 
 ## 📄 许可
 
