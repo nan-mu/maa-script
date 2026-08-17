@@ -3,10 +3,9 @@ from __future__ import annotations
 import shutil
 import sys
 
-from maa_runner.codes import EXIT_CONFIG, EXIT_OK
 from maa_runner.config import ConfigError, load_config, project_root
 from maa_runner.notify import NotifyError, send_message
-from maa_runner.pipeline import run_daily, run_preflight
+from maa_runner.pipeline import EXIT_CONFIG, EXIT_OK, run_daily, run_preflight
 from maa_runner.schedule import (
     ScheduleError,
     build_cron_line,

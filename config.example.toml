@@ -14,13 +14,13 @@
 proxy = "http://127.0.0.1:7890"
 probe_timeout_sec = 10
 probe_urls = [
-  "https://github.com",
+  # "https://github.com", # TODO: 代理ip经常被封禁，考虑用其他方法检测github可访问性
   "https://api.maa.plus",
   "https://api.telegram.org",
 ]
 
 [maa]
-bin = "/Users/nan/.cargo/bin/maa"
+bin = "maa"
 task = "daily"
 profile = "default"
 extra_args = ["-vv", "--batch", "--log-file"]
@@ -37,4 +37,4 @@ mode = "reboot"             # reboot | sleep_only
 boot_timeout_sec = 180
 
 [schedule]
-cron = "0 5 * * *"
+cron = "0 5,17 * * *"

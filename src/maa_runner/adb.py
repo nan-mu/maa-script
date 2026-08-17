@@ -1,10 +1,25 @@
 from __future__ import annotations
 
+import io
 import subprocess
 import time
 
+from PIL import Image
+
 from maa_runner.config import Config
-from maa_runner.screen import is_black, mean_luma
+
+
+def mean_luma(png_bytes: bytes) -> float:
+    image = Image.open(io.BytesIO(png_bytes)).convert("L")
+    pixels = image.getdata()
+    count = len(pixels)
+    if count == 0:
+        raise ValueError("empty screenshot")
+    return sum(pixels) / count
+
+
+def is_black(luma: float, luma_black: float) -> bool:
+    return luma < luma_black
 
 
 class AdbError(Exception):

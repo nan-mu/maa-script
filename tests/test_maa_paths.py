@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from maa_runner.config import ConfigError, MaaConfig, load_config
-from maa_runner.maa_paths import find_task_file, read_connection
+from maa_runner.maa import find_task_file, read_connection
 
 
 def _cfg(tmp_path: Path, bin_path: str = "/usr/bin/maa"):

@@ -4,21 +4,23 @@ from datetime import datetime
 
 from maa_runner import adb, net, notify
 from maa_runner.adb import AdbError
-from maa_runner.codes import (
-    EXIT_INTERRUPT,
-    EXIT_OK,
-    EXIT_STAGE,
-    EXIT_TELEGRAM,
-    EXIT_TIMEOUT,
-)
 from maa_runner.config import Config, ConfigError
-from maa_runner.maa import MaaResult, build_cmd, run_maa
-from maa_runner.maa_paths import (
+from maa_runner.maa import (
     MaaDirError,
+    MaaResult,
+    build_cmd,
     enrich_from_maa_profile,
     find_task_file,
     maa_dir,
+    run_maa,
 )
+
+EXIT_OK = 0
+EXIT_CONFIG = 1
+EXIT_STAGE = 2
+EXIT_TIMEOUT = 3
+EXIT_TELEGRAM = 4
+EXIT_INTERRUPT = 130
 from maa_runner.notify import NotifyError
 from maa_runner.parse import parse_summary
 from maa_runner.report import build_report, scan_log_file

@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 
 from maa_runner.report import build_report, scan_log_levels
-from maa_runner.maa_paths import find_maa_log
+from maa_runner.maa import find_maa_log
 from maa_runner.parse import parse_fight, parse_recruit, parse_summary
 
 GOLD_SUMMARY = """Summary
