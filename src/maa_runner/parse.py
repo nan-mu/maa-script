@@ -9,7 +9,12 @@ TASK_LINE_RE = re.compile(
     r"^\[(.+?)\]\s+(\d{2}:\d{2}:\d{2})\s+-\s+(\d{2}:\d{2}:\d{2})\s+\(([^)]+)\)\s+(\w+)\s*$"
 )
 
-FIGHT_LINE_RE = re.compile(r"^Fight\s+(\S+)\s+(\d+)\s+times,\s*drops:\s*$", re.I)
+# MAA may insert medicine / other clauses between "times," and "drops:"
+# e.g. "Fight CE-6 18 times, used 4 medicine (4 expiring), drops:"
+FIGHT_LINE_RE = re.compile(
+    r"^Fight\s+(\S+)\s+(\d+)\s+times,.*?drops:\s*$",
+    re.I,
+)
 TOTAL_DROPS_RE = re.compile(r"^total drops:\s*(.+)\s*$", re.I)
 RECRUITED_TIMES_RE = re.compile(r"^Recruited\s+(\d+)\s+times\s*$", re.I)
 REFRESHED_TIMES_RE = re.compile(r"^Refreshed\s+(\d+)\s+times\s*$", re.I)

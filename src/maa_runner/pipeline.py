@@ -4,7 +4,7 @@ from datetime import datetime
 
 from maa_runner import adb, net, notify
 from maa_runner.adb import AdbError
-from maa_runner.config import Config, ConfigError
+from maa_runner.config import Config, ConfigError, with_proxy
 from maa_runner.logs import daily_log_path, harvest_cron, prepare_logs
 from maa_runner.maa import (
     MaaDirError,
@@ -80,6 +80,25 @@ def run_preflight(cfg: Config) -> list[str]:
         detail(f"FAIL ({exc})")
         failures.append(f"7z: {exc}")
 
+    print("[doctor] 网络", flush=True)
+    winner, attempts = net.select_working_proxy(cfg)
+    for attempt in attempts:
+        detail(f"尝试 {attempt.label}")
+        for result in attempt.results:
+            status = "ok" if result.ok else "FAIL"
+            detail(f"  {status} {result.url} -> {result.detail}")
+    if winner is None:
+        last = attempts[-1] if attempts else None
+        if last is None:
+            failures.append("Proxy: no candidates")
+        else:
+            for result in last.results:
+                if not result.ok:
+                    failures.append(f"Proxy {result.url}: {result.detail}")
+    else:
+        detail(f"选用 {winner.label}")
+        cfg = with_proxy(cfg, winner.proxy)
+
     print("[doctor] Telegram", flush=True)
     try:
         info = notify.verify(cfg)
@@ -87,13 +106,6 @@ def run_preflight(cfg: Config) -> list[str]:
     except NotifyError as exc:
         detail(f"FAIL ({exc})")
         failures.append(f"Telegram: {exc}")
-
-    print("[doctor] 网络", flush=True)
-    for result in net.probe_all(cfg):
-        status = "ok" if result.ok else "FAIL"
-        detail(f"{status} {result.url} -> {result.detail}")
-        if not result.ok:
-            failures.append(f"Proxy {result.url}: {result.detail}")
 
     print("[doctor] 设备", flush=True)
     if any(f.startswith("MAA config:") for f in failures):
@@ -120,15 +132,23 @@ def _phase1(cfg: Config) -> None:
     detail(f"luma={luma:.1f} (awake)")
 
 
-def _phase2(cfg: Config) -> None:
+def _phase2(cfg: Config) -> Config:
     title(2, "网络")
-    failures: list[str] = []
-    for result in net.probe_all(cfg):
-        detail(f"{result.url} -> {result.detail}")
-        if not result.ok:
-            failures.append(f"{result.url}: {result.detail}")
-    if failures:
-        raise StageError("proxy probe failed: " + "; ".join(failures))
+    winner, attempts = net.select_working_proxy(cfg)
+    for attempt in attempts:
+        detail(f"尝试 {attempt.label}")
+        for result in attempt.results:
+            detail(f"  {result.url} -> {result.detail}")
+    if winner is None:
+        failures: list[str] = []
+        last = attempts[-1] if attempts else None
+        if last is not None:
+            failures = [f"{r.url}: {r.detail}" for r in last.results if not r.ok]
+        raise StageError(
+            "proxy probe failed: " + ("; ".join(failures) if failures else "no candidates")
+        )
+    detail(f"选用 {winner.label}")
+    return with_proxy(cfg, winner.proxy)
 
 
 def _phase3(cfg: Config, timestamp: str) -> MaaResult:
@@ -245,7 +265,7 @@ def _run_daily_body(cfg: Config, timestamp: str) -> int:
     try:
         try:
             _phase1(cfg)
-            _phase2(cfg)
+            cfg = _phase2(cfg)
         except AdbError as exc:
             raise StageError(str(exc)) from exc
     except StageError as exc:

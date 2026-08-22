@@ -48,7 +48,7 @@ MAA 的 adb 路径、设备序列号写在 MAA profile 里；maa-script 的 `con
 ## ✨ 功能
 
 - 📲 **真机设备** — 从 MAA profile 读 adb / 序列号；唤醒、亮度检测、息屏 / reboot
-- 🌐 **网络** — 代理探测 MAA / Telegram 等 URL，失败提前告警
+- 🌐 **网络** — 多代理按序探测，失败再试直连；不通则提前告警
 - 🤖 **MAA 调度** — `maa run daily`，超时 kill，stdout 追加到当天 `logs/YYYY-MM-DD.log`
 - 📊 **Summary 解析** — 原始 Summary → 精简报告
   - ⚔ 剿灭 / 理智作战：关卡、次数、总掉落（`理智 × 1` 不展示）
@@ -104,7 +104,7 @@ pixi run uninstall     # 移除 crontab 行
 
 ```toml
 [network]
-proxy = "http://127.0.0.1:7890"
+proxies = ["http://127.0.0.1:7890"]
 probe_timeout_sec = 10
 probe_urls = ["https://api.maa.plus", "https://api.telegram.org"]
 
@@ -146,14 +146,14 @@ retain_months = 3
 ### 🌐 `[network]`
 
 
-| 键                   | 说明            |
-| ------------------- | ------------- |
-| `proxy`             | HTTP 代理；留空则直连 |
-| `probe_timeout_sec` | 探测超时          |
-| `probe_urls`        | 预检 URL 列表     |
+| 键                   | 说明                                      |
+| ------------------- | --------------------------------------- |
+| `proxies`           | HTTP 代理列表，按序探测；全失败后再试直连（兼容旧键 `proxy`） |
+| `probe_timeout_sec` | 探测超时                                    |
+| `probe_urls`        | 预检 URL 列表                               |
 
 
-MAA 子进程与 Telegram 请求均走此代理。
+MAA 子进程与 Telegram 请求均走选中的代理（或直连）。
 
 ### 🤖 `[maa]`
 
@@ -256,7 +256,7 @@ Phase 1 / 2 失败时强制 `sleep_only`（不 reboot），避免设备离线时
 
 ```text
 [1/5] 📲 设备校验   adb 在线 → 唤醒 → 亮度检测
-[2/5] 🌐 网络       代理探测 probe_urls
+[2/5] 🌐 网络       多代理按序探测 probe_urls，最后试直连
 [3/5] 🤖 MAA 调度   maa run daily → logs/YYYY-MM-DD.log
 [4/5] 📊 解析与回传  Summary → Telegram
 [5/5] 😴 后置清理   reboot + 息屏，或 sleep_only

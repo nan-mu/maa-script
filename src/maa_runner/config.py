@@ -30,6 +30,9 @@ class DeviceConfig:
 
 @dataclass(frozen=True)
 class NetworkConfig:
+    """proxies = candidates; proxy = active selection ("" = direct)."""
+
+    proxies: tuple[str, ...]
     proxy: str
     probe_timeout_sec: float
     probe_urls: tuple[str, ...]
@@ -242,12 +245,14 @@ def load_config(root: Path | None = None, *, require_telegram: bool = True) -> C
         raise ConfigError("maa.profile must be a non-empty string")
 
     logs = _parse_logs(raw.get("logs"))
+    proxies = _parse_proxy_candidates(network_raw)
 
     return Config(
         root=root,
         device=_parse_device(device_raw),
         network=NetworkConfig(
-            proxy=_require_str(network_raw, "proxy", allow_empty=True),
+            proxies=proxies,
+            proxy=proxies[0] if proxies else "",
             probe_timeout_sec=_require_number(network_raw, "probe_timeout_sec"),
             probe_urls=tuple(probe_urls),
         ),
@@ -273,3 +278,22 @@ def load_config(root: Path | None = None, *, require_telegram: bool = True) -> C
 
 def with_device(cfg: Config, *, adb: str, serial: str) -> Config:
     return replace(cfg, device=replace(cfg.device, adb=adb, serial=serial))
+
+
+def with_proxy(cfg: Config, proxy: str) -> Config:
+    return replace(cfg, network=replace(cfg.network, proxy=proxy.strip()))
+
+
+def _parse_proxy_candidates(network_raw: dict) -> tuple[str, ...]:
+    """Accept ``proxies = [...]`` or legacy ``proxy = "..."``."""
+    if "proxies" in network_raw:
+        raw = network_raw["proxies"]
+        if not isinstance(raw, list):
+            raise ConfigError("network.proxies must be a list")
+        if not all(isinstance(p, str) for p in raw):
+            raise ConfigError("network.proxies entries must be strings")
+        return tuple(p.strip() for p in raw if p.strip())
+    if "proxy" in network_raw:
+        value = _require_str(network_raw, "proxy", allow_empty=True).strip()
+        return (value,) if value else ()
+    raise ConfigError("missing network.proxies (or legacy network.proxy)")

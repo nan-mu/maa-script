@@ -5,6 +5,7 @@ from pathlib import Path
 import requests
 
 from maa_runner.config import Config
+from maa_runner.net import requests_proxies
 
 TG_LIMIT = 4096
 API_TIMEOUT = 30
@@ -15,10 +16,7 @@ class NotifyError(Exception):
 
 
 def _proxies(cfg: Config) -> dict[str, str] | None:
-    proxy = cfg.network.proxy.strip()
-    if not proxy:
-        return None
-    return {"http": proxy, "https": proxy}
+    return requests_proxies(cfg.network.proxy)
 
 
 def _api(cfg: Config, method: str) -> str:

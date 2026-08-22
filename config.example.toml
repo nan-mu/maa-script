@@ -11,7 +11,12 @@
 # wake_interval_sec = 1.5
 
 [network]
-proxy = "http://127.0.0.1:7890"
+# Tried in order; first that can reach all probe_urls wins.
+# Direct (no proxy) is always tried last.
+proxies = [
+  "http://127.0.0.1:7890",
+  # "http://192.168.1.2:7890",
+]
 probe_timeout_sec = 10
 probe_urls = [
   # "https://github.com", # TODO: 代理ip经常被封禁，考虑用其他方法检测github可访问性

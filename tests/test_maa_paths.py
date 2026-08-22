@@ -20,7 +20,7 @@ def _cfg(tmp_path: Path, bin_path: str = "/usr/bin/maa"):
     return Config(
         root=tmp_path,
         device=DeviceConfig(adb="", serial=""),
-        network=NetworkConfig(proxy="", probe_timeout_sec=1, probe_urls=("https://example.com",)),
+        network=NetworkConfig(proxies=(), proxy="", probe_timeout_sec=1, probe_urls=("https://example.com",)),
         maa=MaaConfig(
             bin=bin_path,
             task="daily",

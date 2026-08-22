@@ -125,6 +125,31 @@ def test_parse_fight_and_recruit_helpers():
     assert stars == {3: 4}
 
 
+def test_medicine_fight_appears_in_success_report():
+    text = """Summary
+----------------------------------------
+[理智作战] 18:09:27 - 18:23:40 (14m 13s) Completed
+Fight CE-6 18 times, used 4 medicine (4 expiring), drops:
+1. 龙门币 × 50000
+total drops: furni × 2, 龙门币 × 180000
+----------------------------------------
+[Recruit] 18:23:40 - 18:24:47 (1m 6s) Completed
+Recruited 4 times
+Refreshed 2 times
+----------------------------------------
+"""
+    parsed = parse_summary(text)
+    report = build_report(
+        parsed,
+        process_ok=True,
+        timed_out=False,
+        returncode=0,
+        anomaly=scan_log_levels(""),
+    )
+    assert "⚔ 理智作战 · CE-6 × 18 收获：" in report.text
+    assert "龙门币 × 180000" in report.text
+
+
 def test_find_maa_log_prefers_exact_timestamp(tmp_path: Path):
     started = datetime(2026, 8, 12, 22, 43, 28)
     day = tmp_path / "2026" / "08" / "12"

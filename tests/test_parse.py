@@ -40,6 +40,16 @@ Trade(Money) with operators: unknown
 [Reclamation] 16:34:42 - 16:34:42 (0s) Completed
 """
 
+MEDICINE_FIGHT = """Summary
+----------------------------------------
+[理智作战] 18:09:27 - 18:23:40 (14m 13s) Completed
+Fight CE-6 18 times, used 4 medicine (4 expiring), drops:
+1. 龙门币 × 50000
+2. furni × 1, 龙门币 × 30000
+total drops: furni × 2, 龙门币 × 180000
+----------------------------------------
+"""
+
 
 def test_gold_sample_all_completed():
     parsed = parse_summary(GOLD_SUMMARY)
@@ -104,3 +114,15 @@ def test_extracts_summary_from_stdout_preamble():
     assert parsed.summary_text.startswith("Summary")
     assert parsed.all_completed
     assert len(parsed.tasks) == 9
+
+
+def test_fight_line_with_medicine_clause():
+    from maa_runner.parse import parse_fight
+
+    parsed = parse_summary(MEDICINE_FIGHT)
+    fight = parsed.find("理智作战")
+    assert fight is not None
+    stage, times, total = parse_fight(fight.body)
+    assert stage == "CE-6"
+    assert times == 18
+    assert total == "furni × 2, 龙门币 × 180000"
